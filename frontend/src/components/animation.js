@@ -12,7 +12,9 @@ const webSocket = new WebSocket('ws://localhost:4000');
 let PLAYERS = [];
 let ID = null;
 
-// handle websocket
+/* 
+  HANDLE WEBSOCKET CONNECTION
+*/
 webSocket.onopen = () => {
   console.log('websocket connection established');
 };
@@ -26,10 +28,10 @@ webSocket.onmessage = (message) => {
   let data = JSON.parse(message.data)
 
   switch (data.type) {
-    case 'connect':{
+    case 'clientConnected':{
       ID = data.action.id;
       const start = {
-        type: 'start',
+        type: 'startGame',
         action: ID,
       }
       webSocket.send(JSON.stringify(start));
@@ -70,7 +72,7 @@ class Animation extends Component{
     // when space bar is pressed -> flap bird and send to server
     if (e.keyCode === 32){
       let flap = {
-        type: 'flap',
+        type: 'playerFlap',
         action: this.props.player.id,
       }
       webSocket.send(JSON.stringify(flap))
@@ -88,14 +90,15 @@ class Animation extends Component{
   }
 }
 
-
+/*
+  REDUX
+*/
 const mapStateToProps = state => {
   return {
     players: state.animationReducer.players,
     player: state.animationReducer.player,
   };
 };
-
 const mapDispatchToProps = {
   setPlayerId,
   setPlayerLocations,

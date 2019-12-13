@@ -3,7 +3,9 @@ const uuidv1 = require('uuid/v1');
 
 const wss = new WebSocket.Server({port: 4000});
 
-// create game settings
+/* 
+  GAME SETTINGS
+*/
 const gameSettings = {
   gameWidth: 1000,
   gameHeight: 500,
@@ -11,7 +13,10 @@ const gameSettings = {
   birdRadius: 20,
 }
 
-// create birds
+/*
+  DECLARATION/STORE ALL PLAYERS
+*/
+let allBirds = []
 class Bird {
   constructor(gameSettings, id){
     this.id = id;
@@ -24,33 +29,34 @@ class Bird {
   }
 }
 
-// store all players
-let allBirds = []
-
-// ws connection
+/*
+  START WEBSOCKET CONNECTION
+*/
 wss.on('connection', (ws) => {
-  // when player connects, give specific ID
+  // when player connects, send player a unique ID
   console.log('someone has connected');
   let uniqueID = uuidv1();
   let connected = {
-    type: 'connect',
+    type: 'clientConnected',
     action: {
       id: uniqueID,
     }
   }
   ws.send(JSON.stringify(connected));
 
-  // recieve message
+  // receiving message
   ws.on('message', (message) => {
     message = JSON.parse(message)
     
     switch (message.type){
-      case 'start': {
+      // on start game -> add new player
+      case 'startGame': {
         let id = message.action;
         allBirds.push(new Bird(gameSettings, id));
         break;
       }
-      case 'flap': {
+      // on space button press -> flap player's wing
+      case 'playerFlap': {
         let id = message.action
         
         allBirds.forEach((bird) => {
@@ -61,26 +67,29 @@ wss.on('connection', (ws) => {
       }
     };
 
+    // send message to newly connected client
     wss.broadcast(JSON.stringify(message));
   });
+
 
   ws.on('close', () => {
     console.log('client has closed');
   });
-
   ws.on('error', (e) => {
     console.log('client has thrown an error', e);
   });
 });
 
-// game loop interval
+/*
+ GAME LOOP 
+*/
 gameLoop = setInterval(() => {
   allBirds.forEach((bird) => {
-    // update positions
+    // update all player positions
     bird.yPosition += bird.velocity;
     bird.velocity += gameSettings.gravity;
 
-    // check collision
+    // check collision between bottom and top window -> make sure player cannot go past game window
     if (bird.yPosition > gameSettings.gameHeight) {
       bird.yPosition = gameSettings.gameHeight;
       bird.velocity = 0;
@@ -100,6 +109,7 @@ gameLoop = setInterval(() => {
   }
   wss.broadcast(JSON.stringify(players));
 }, 20);
+
 
 // utility broadcast function
 wss.broadcast = (data) => {
