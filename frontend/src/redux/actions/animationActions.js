@@ -11,3 +11,10 @@ export const setPlayerLocations = players => {
     players,
   };
 };
+
+export const setPipeLocations = pipes => {
+  return {
+    type: "SET_PIPES",
+    pipes,
+  };
+};

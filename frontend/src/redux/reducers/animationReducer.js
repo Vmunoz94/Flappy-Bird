@@ -2,7 +2,8 @@ const INITIAL_STATE = {
   players: [],
   player: {
     id: null,
-  }
+  },
+  pipes: [],
 };
 
 const animationReducer = (state = INITIAL_STATE, action) => {
@@ -22,9 +23,15 @@ const animationReducer = (state = INITIAL_STATE, action) => {
         }
       };
     }
+    case "SET_PIPES": {
+      return {
+        ...state,
+        pipes: action.pipes
+      };
+    }
     default:
       return state;
-  }
+  };
 };
 
 export default animationReducer;

@@ -12,24 +12,37 @@ class Canvas extends Component {
 
   draw = () => {
     const canvas = this.canvasRef.current;
-    const contex = canvas.getContext("2d");
+    const context = canvas.getContext("2d");
     
     // clear screen
-    contex.clearRect(0, 0, canvas.width, canvas.height);
+    context.clearRect(0, 0, canvas.width, canvas.height);
 
+    this.drawPipes(context);
+    this.drawBirds(context);
+  }
+
+  drawBirds = (context) => {
     // loop through all players and draw each bird
     this.props.players.forEach((bird) => {
-      contex.beginPath();
-      contex.arc(
+      context.beginPath();
+      context.arc(
         bird.xPosition,
         bird.yPosition,
         bird.radius,
         0,
         Math.PI * 2);
-      contex.fillStyle = bird.color;
-      contex.fill();
-    })
-  }
+      context.fillStyle = bird.color;
+      context.fill();
+    });
+  };
+
+  drawPipes = (context) => {
+    // loop through all pipes and draw 
+    this.props.pipes.forEach((pipe) => {
+      context.fillStyle = pipe.color;
+      context.fillRect(pipe.xPosition, pipe.yPosition, pipe.width, pipe.height);
+    });
+  };
 
   render() {
     return (

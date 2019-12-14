@@ -6,10 +6,12 @@ import Canvas from './canvas';
 import {
   setPlayerId,
   setPlayerLocations,
+  setPipeLocations,
 } from '../redux/actions/animationActions';
 
 const webSocket = new WebSocket('ws://localhost:4000');
 let PLAYERS = [];
+let PIPES = [];
 let ID = null;
 
 /* 
@@ -37,13 +39,14 @@ webSocket.onmessage = (message) => {
       webSocket.send(JSON.stringify(start));
       break;
     }
-    case 'players':{
-      PLAYERS = data.action.players;
+    case 'gameLogic':{
+      PLAYERS = data.action.allBirds;
+      PIPES = data.action.allPipes;
       break;
     }
     default:
-      console.log(data.type)
-      console.log(data.action);
+      // console.log(data.type)
+      // console.log(data.action);
   };
 };
 
@@ -65,6 +68,7 @@ class Animation extends Component{
     // update player id && player locations
     this.props.setPlayerId(ID);
     this.props.setPlayerLocations(PLAYERS);
+    this.props.setPipeLocations(PIPES);
     this.rAF = requestAnimationFrame(this.updateAnimationState);
   }
 
@@ -84,6 +88,7 @@ class Animation extends Component{
       <div onKeyDown={this.flap} tabIndex="0">
         <Canvas 
           players={this.props.players} //pass all players to canvas to draw
+          pipes = {this.props.pipes} //pass all pipes to canvas to draw
         />
       </div>
     )
@@ -97,11 +102,13 @@ const mapStateToProps = state => {
   return {
     players: state.animationReducer.players,
     player: state.animationReducer.player,
+    pipes: state.animationReducer.pipes,
   };
 };
 const mapDispatchToProps = {
   setPlayerId,
   setPlayerLocations,
+  setPipeLocations,
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Animation);

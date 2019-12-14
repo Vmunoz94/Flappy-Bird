@@ -1,33 +1,52 @@
 const WebSocket = require('ws');
 const uuidv1 = require('uuid/v1');
-
 const wss = new WebSocket.Server({port: 4000});
+
 
 /* 
   GAME SETTINGS
 */
 const gameSettings = {
-  gameWidth: 1000,
-  gameHeight: 500,
+  gameWidth: 2000,
+  gameHeight: 650,
   gravity: .75,
   birdRadius: 20,
+  flap: -10,
+  birdColor: 'orange',
+  pipeSpeed: -5,
+  pipeColor: 'green',
+  pipeWidth: 75,
 }
 
 /*
   DECLARATION/STORE ALL PLAYERS
 */
-let allBirds = []
+let allBirds = [];
 class Bird {
-  constructor(gameSettings, id){
+  constructor(id, flap, radius, color){
     this.id = id;
     this.xPosition = 100;
     this.yPosition = 100;
-    this.velocity = -10;
-    this.radius = gameSettings.birdRadius;
-    this.color = 'orange';
+    this.velocity = flap;
+    this.radius = radius;
+    this.color = color;
     this.alive = true;
-  }
-}
+  };
+};
+/*
+  DECLARATION/CREATE ALL PIPES
+*/
+let allPipes = [];
+class Pipe {
+  constructor(width, height, xPosition, yPosition, speed, color){
+    this.width = width;
+    this.height = height;
+    this.yPosition = yPosition;
+    this.xPosition = xPosition;
+    this.speed = speed;
+    this.color = color;
+  };
+};
 
 /*
   START WEBSOCKET CONNECTION
@@ -52,7 +71,7 @@ wss.on('connection', (ws) => {
       // on start game -> add new player
       case 'startGame': {
         let id = message.action;
-        allBirds.push(new Bird(gameSettings, id));
+        allBirds.push(new Bird(id, gameSettings.flap, gameSettings.birdRadius, gameSettings.birdColor));
         break;
       }
       // on space button press -> flap player's wing
@@ -61,9 +80,10 @@ wss.on('connection', (ws) => {
         
         allBirds.forEach((bird) => {
           if (bird.id === id){
-            bird.velocity = -10;
+            bird.velocity = gameSettings.flap;
           };
         })
+        break;
       }
     };
 
@@ -81,11 +101,11 @@ wss.on('connection', (ws) => {
 });
 
 /*
- GAME LOOP 
+  GAME LOGIC
 */
-gameLoop = setInterval(() => {
+updateAllBirdPositions = (allBirds) => {
   allBirds.forEach((bird) => {
-    // update all player positions
+    // update all bird positions
     bird.yPosition += bird.velocity;
     bird.velocity += gameSettings.gravity;
 
@@ -93,23 +113,57 @@ gameLoop = setInterval(() => {
     if (bird.yPosition > gameSettings.gameHeight) {
       bird.yPosition = gameSettings.gameHeight;
       bird.velocity = 0;
-    }
-    else if (bird.yPosition < 0) {
+    } else if (bird.yPosition < 0) {
       bird.yPosition = 0;
       bird.velocity = 0;
     }
   });
+};
 
-  // transmit all player locations
-  const players = {
-    type: 'players',
-    action: {
-      players: [...allBirds]
-    },
+updateAllPipePositions = (allPipes) => {
+  for (let i = 0; i < allPipes.length; i+=2){
+    allPipes[i].xPosition += gameSettings.pipeSpeed;
+    allPipes[i+1].xPosition += gameSettings.pipeSpeed;
   }
-  wss.broadcast(JSON.stringify(players));
-}, 20);
 
+  if (allPipes.length > 0 && allPipes[0].xPosition <= -gameSettings.pipeWidth){
+    // remove bottom and top pipe
+    allPipes.splice(0,2);
+  };
+};
+
+// add new pipe every second and a half
+const min = Math.ceil(200);
+const max = Math.floor(gameSettings.gameHeight - 50);
+const pipeGap = 125;
+addPipe = setInterval(() => {
+  let randomYPosition = (Math.random() * (max - min)) + min;
+  // bottom pipe
+  let pipeHeight = (gameSettings.gameHeight + gameSettings.birdRadius) - randomYPosition;
+  let bottomPipe = new Pipe(gameSettings.pipeWidth, pipeHeight, gameSettings.gameWidth, randomYPosition, gameSettings.pipeSpeed, gameSettings.pipeColor)
+  allPipes.push(bottomPipe);
+
+  // top pipe
+  let topPipe = new Pipe(gameSettings.pipeWidth, gameSettings.gameHeight - bottomPipe.height - pipeGap, gameSettings.gameWidth, 0, gameSettings.pipeSpeed, gameSettings.pipeColor);
+  allPipes.push(topPipe);
+}, 1500);
+
+/*
+ GAME LOOP 
+*/
+gameLoop = setInterval(() => {
+  updateAllBirdPositions(allBirds);
+  updateAllPipePositions(allPipes);
+  let updatedGameLogic = {
+    type: 'gameLogic',
+    action: {
+      allBirds,
+      allPipes,
+    }
+  }
+
+  wss.broadcast(JSON.stringify(updatedGameLogic));
+}, 20);
 
 // utility broadcast function
 wss.broadcast = (data) => {
