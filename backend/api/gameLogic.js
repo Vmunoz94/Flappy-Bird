@@ -19,9 +19,8 @@ const gameSettings = {
 }
 
 /*
-  DECLARATION/STORE ALL PLAYERS
+  CLASSES
 */
-let allBirds = [];
 class Bird {
   constructor(id, flap, radius, color){
     this.id = id;
@@ -33,12 +32,9 @@ class Bird {
     this.alive = true;
   };
 };
-/*
-  DECLARATION/CREATE ALL PIPES
-*/
-let allPipes = [];
+
 class Pipe {
-  constructor(width, height, xPosition, yPosition, speed, color){
+  constructor(width, height, xPosition, yPosition, speed, color) {
     this.width = width;
     this.height = height;
     this.yPosition = yPosition;
@@ -47,6 +43,12 @@ class Pipe {
     this.color = color;
   };
 };
+
+/*
+  STORAGE
+*/
+let allBirds = [];
+let allPipes = [];
 
 /*
   START WEBSOCKET CONNECTION
@@ -117,6 +119,22 @@ updateAllBirdPositions = (allBirds) => {
       bird.yPosition = 0;
       bird.velocity = 0;
     }
+
+    // check collision between player and left pipe pair
+    if (allPipes.length > 0){
+      if (allPipes[0].xPosition <= bird.xPosition && allPipes[0].xPosition + allPipes[0].width > bird.xPosition){
+        // bottom pipe
+        if (bird.yPosition + bird.radius > allPipes[0].yPosition) {
+          bird.color = 'red';
+        // top pipe
+        } else if (bird.yPosition - bird.radius < allPipes[1].height) {
+          bird.color = 'red';
+        }
+      }
+      else {
+        bird.color = 'orange';
+      }
+    }
   });
 };
 
@@ -126,9 +144,10 @@ updateAllPipePositions = (allPipes) => {
     allPipes[i+1].xPosition += gameSettings.pipeSpeed;
   }
 
-  if (allPipes.length > 0 && allPipes[0].xPosition <= -gameSettings.pipeWidth){
+  // check if left pipe pair is out of bounds, if so -> remove them
+  if (allPipes.length > 0 && allPipes[0].xPosition <= -gameSettings.pipeWidth) {
     // remove bottom and top pipe
-    allPipes.splice(0,2);
+    allPipes.splice(0, 2);
   };
 };
 
